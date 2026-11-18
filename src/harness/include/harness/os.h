@@ -22,6 +22,10 @@
 #include <unistd.h>
 #endif
 
+// Set an environment variable for the current process, overwriting any existing
+// value. Returns 0 on success, non-zero on failure.
+extern int OS_SetEnvironmentVariable(const char* name, const char* value);
+
 // Optional: install a handler to print stack trace during a crash
 extern void OS_InstallSignalHandler(char* program_name);
 

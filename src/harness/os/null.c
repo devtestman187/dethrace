@@ -7,6 +7,10 @@ void OS_InstallSignalHandler(char* program_name) {
 void OS_RemoveSignalHandler(void) {
 }
 
+int OS_SetEnvironmentVariable(const char* name, const char* value) {
+    return -1;
+}
+
 char* OS_GetFirstFileInDirectory(char* path) {
     return NULL;
 }

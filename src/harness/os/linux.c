@@ -297,6 +297,10 @@ void OS_RemoveSignalHandler(void) {
     }
 }
 
+int OS_SetEnvironmentVariable(const char* name, const char* value) {
+    return setenv(name, value, 1);
+}
+
 char* OS_GetFirstFileInDirectory(char* path) {
     directory_iterator = opendir(path);
     if (directory_iterator == NULL) {

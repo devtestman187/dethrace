@@ -70,4 +70,6 @@ finished 640x480 frame into the harness' letterboxed window viewport
 When the AMD FidelityFX FSR 1.0 upscale is enabled, EASU reconstructs the
 frame at the present rect resolution and RCAS sharpens it into the window
 framebuffer. Otherwise the legacy nearest upscale plus unsharp mask is used.
-See `docs/CONFIGURATION.md` for the `GLREND_FSR*` environment variables.
+See `docs/CONFIGURATION.md` for the `--fsr`/`--sharpen` command line flags, the
+`[Graphics]` dethrace.ini section and the underlying `GLREND_*` environment
+variables.

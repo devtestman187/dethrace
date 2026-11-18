@@ -349,6 +349,10 @@ void OS_RemoveSignalHandler(void) {
     prevUnhandledExceptionFilter = NULL;
 }
 
+int OS_SetEnvironmentVariable(const char* name, const char* value) {
+    return _putenv_s(name, value);
+}
+
 char* OS_GetFirstFileInDirectory(char* path) {
     char with_extension[256];
     WIN32_FIND_DATA find_data;

@@ -47,6 +47,16 @@ DefaultGame = c1
 ; Enabling this runs physics every frame, smoothing movement out
 PhysicsPerFrame = 1
 
+[Graphics]
+; FSR 1.0 upscale (OpenGL renderer only). 0 = legacy present path, 1 = FSR 1.0
+FSR = 1
+
+; RCAS sharpness in stops while FSR 1.0 is active (0 = maximum, 2 = softest)
+FSRSharpness = 0.2
+
+; Legacy unsharp mask strength, used when FSR 1.0 is not active
+SharpenAmount = 0.4
+
 [Games]
 c1 = /opt/carma/c1
 c1demo = /opt/carma/c1demo
@@ -73,11 +83,54 @@ AdapterName = ""
 4. Current working directory (if `DATA/GENERAL.TXT` exists)
 5. `SDL_GetPrefPath` directory
 
-## Graphics environment variables (OpenGL renderer)
+## Graphics settings (OpenGL renderer)
 
-These are currently read from the process environment by the BRender `glrend`
-driver (they are not yet wired into `dethrace.ini`) and are read once at
-startup.
+The OpenGL (`glrend`) renderer's FSR 1.0 upscale and sharpen settings can be
+controlled with command-line flags, with the `[Graphics]` section of
+`dethrace.ini`, or with the underlying `GLREND_*` environment variables. All
+three control the same settings; dethrace forwards the resolved values to the
+renderer through the environment before the renderer initialises.
+
+Only settings that are specified at a given level are applied: an existing
+`GLREND_*` environment variable is left untouched when neither the command line
+nor `dethrace.ini` sets that setting, so the renderer defaults still apply.
+
+Order of precedence (highest first):
+
+1. Command-line flag
+2. `[Graphics]` entry in `dethrace.ini`
+3. Existing `GLREND_*` environment variable
+4. Renderer default
+
+Values must be non-negative. An invalid command-line value aborts startup with
+an error; an invalid `dethrace.ini` value is ignored with a warning in the log.
+These settings only affect the OpenGL renderer (`--opengl` / `Emulate3DFX`).
+
+### Command-line flags
+
+| Flag | Values | Description |
+|---|---|---|
+| `--fsr` / `--no-fsr` | | Force the AMD FidelityFX FSR 1.0 upscale on/off (same as `GLREND_FSR=1`/`0`). |
+| `--fsr-sharpness=<n>` | `0`..`2` (stops) | RCAS sharpening strength while FSR 1.0 is active: `0` = maximum sharpening, higher values are softer (same as `GLREND_FSR_SHARPNESS`). Also accepted as `--fsr-sharpness <n>`. |
+| `--sharpen=<n>` | `0`..`~1` | Strength of the legacy present-path unsharp mask, used when FSR 1.0 is not active (same as `GLREND_SHARPEN_AMOUNT`). Also accepted as `--sharpen <n>`. |
+
+### `[Graphics]` section of dethrace.ini
+
+| Key | Values | Description |
+|---|---|---|
+| `FSR` | `0`, `1` | FSR 1.0 upscale on/off (same as `GLREND_FSR`). |
+| `FSRSharpness` | `0`..`2` (stops) | RCAS sharpening strength while FSR 1.0 is active (same as `GLREND_FSR_SHARPNESS`). |
+| `SharpenAmount` | `0`..`~1` | Strength of the legacy present-path unsharp mask, used when FSR 1.0 is not active (same as `GLREND_SHARPEN_AMOUNT`). |
+
+Key names are case-insensitive, and `fsr_sharpness` / `sharpen_amount` are
+accepted as aliases for `FSRSharpness` / `SharpenAmount`.
+
+### Renderer environment variables (lowest precedence)
+
+These are read from the process environment by the BRender `glrend` driver, once
+at startup. They are normally set through the command line or `dethrace.ini` as
+described above; setting them directly only has an effect for settings that the
+command line and `dethrace.ini` leave unspecified.
 
 | Variable | Values | Default | Description |
 |---|---|---|---|

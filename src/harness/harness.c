@@ -61,6 +61,8 @@ tHarness_platform gHarness_platform;
 
 static int Harness_ProcessCommandLine(int* argc, char* argv[]);
 static int Harness_ProcessIniFile(void);
+static void Harness_ApplyGraphicsSettings(void);
+static int Harness_ParseNonNegativeFloat(const char* value, float* result);
 
 static int Harness_InitPlatform(void) {
     int required_caps = 0;
@@ -258,6 +260,62 @@ void Harness_DetectAndSetWorkingDirectory(char* argv0) {
     }
 }
 
+// Parse a non-negative float from a command-line or dethrace.ini value.
+// Returns 0 on success, non-zero if the value is missing, malformed or negative.
+static int Harness_ParseNonNegativeFloat(const char* value, float* result) {
+    char* end;
+    double parsed;
+
+    if (value == NULL || value[0] == '\0') {
+        return 1;
+    }
+    parsed = strtod(value, &end);
+    if (end == value || end[0] != '\0') {
+        return 1;
+    }
+    if (parsed < 0.0 || parsed != parsed) {
+        return 1;
+    }
+    *result = (float)parsed;
+    return 0;
+}
+
+// Forward the resolved graphics settings to this process' environment so the
+// glrend driver picks them up (it reads GLREND_* with getenv() when it starts).
+// Only settings that were actually specified are applied; anything unspecified
+// keeps an existing GLREND_* environment variable or the renderer default.
+// Command line values were already layered over dethrace.ini values.
+static void Harness_ApplyGraphicsSettings(void) {
+    char value[32];
+
+    if (harness_game_config.fsr >= 0) {
+        snprintf(value, sizeof(value), "%d", harness_game_config.fsr);
+        if (OS_SetEnvironmentVariable("GLREND_FSR", value) == 0) {
+            fprintf(stderr, "Harness: GLREND_FSR=%s\n", value);
+        } else {
+            fprintf(stderr, "Harness: failed to set GLREND_FSR\n");
+        }
+    }
+
+    if (harness_game_config.fsr_sharpness >= 0.0f) {
+        snprintf(value, sizeof(value), "%g", (double)harness_game_config.fsr_sharpness);
+        if (OS_SetEnvironmentVariable("GLREND_FSR_SHARPNESS", value) == 0) {
+            fprintf(stderr, "Harness: GLREND_FSR_SHARPNESS=%s\n", value);
+        } else {
+            fprintf(stderr, "Harness: failed to set GLREND_FSR_SHARPNESS\n");
+        }
+    }
+
+    if (harness_game_config.sharpen_amount >= 0.0f) {
+        snprintf(value, sizeof(value), "%g", (double)harness_game_config.sharpen_amount);
+        if (OS_SetEnvironmentVariable("GLREND_SHARPEN_AMOUNT", value) == 0) {
+            fprintf(stderr, "Harness: GLREND_SHARPEN_AMOUNT=%s\n", value);
+        } else {
+            fprintf(stderr, "Harness: failed to set GLREND_SHARPEN_AMOUNT\n");
+        }
+    }
+}
+
 int Harness_Init(int* argc, char* argv[]) {
 
     printf("Dethrace version: %s\n", DETHRACE_VERSION);
@@ -291,6 +349,13 @@ int Harness_Init(int* argc, char* argv[]) {
     // Disable verbose logging
     harness_game_config.verbose = 0;
 
+    // Graphics settings are unspecified by default: an existing GLREND_*
+    // environment variable (or the renderer default) is left in effect until
+    // dethrace.ini or the command line overrides it.
+    harness_game_config.fsr = -1;
+    harness_game_config.fsr_sharpness = -1.0f;
+    harness_game_config.sharpen_amount = -1.0f;
+
     // install signal handler
     harness_game_config.install_signalhandler = 1;
 
@@ -302,6 +367,10 @@ int Harness_Init(int* argc, char* argv[]) {
         fprintf(stderr, "Failed to parse harness command line\n");
         return 1;
     }
+
+    // forward the resolved graphics settings to the renderer environment, before
+    // any platform or renderer setup reads GLREND_* with getenv()
+    Harness_ApplyGraphicsSettings();
 
     // now resolve the platform
     if (Harness_InitPlatform() != 0) {
@@ -427,6 +496,44 @@ int Harness_ProcessCommandLine(int* argc, char* argv[]) {
         } else if (strcasecmp(argv[i], "--opengl") == 0) {
             harness_game_config.opengl_3dfx_mode = 1;
             consumed = 1;
+        } else if (strcasecmp(argv[i], "--fsr") == 0) {
+            harness_game_config.fsr = 1;
+            consumed = 1;
+        } else if (strcasecmp(argv[i], "--no-fsr") == 0) {
+            harness_game_config.fsr = 0;
+            consumed = 1;
+        } else if (strncmp(argv[i], "--fsr-sharpness=", 16) == 0) {
+            if (Harness_ParseNonNegativeFloat(argv[i] + 16, &harness_game_config.fsr_sharpness) != 0) {
+                fprintf(stderr, "Invalid value for --fsr-sharpness: \"%s\"\n", argv[i] + 16);
+                return 1;
+            }
+            consumed = 1;
+        } else if (strcasecmp(argv[i], "--fsr-sharpness") == 0) {
+            if (i + 1 >= *argc) {
+                fprintf(stderr, "Missing value for --fsr-sharpness\n");
+                return 1;
+            }
+            if (Harness_ParseNonNegativeFloat(argv[i + 1], &harness_game_config.fsr_sharpness) != 0) {
+                fprintf(stderr, "Invalid value for --fsr-sharpness: \"%s\"\n", argv[i + 1]);
+                return 1;
+            }
+            consumed = 2;
+        } else if (strncmp(argv[i], "--sharpen=", 10) == 0) {
+            if (Harness_ParseNonNegativeFloat(argv[i] + 10, &harness_game_config.sharpen_amount) != 0) {
+                fprintf(stderr, "Invalid value for --sharpen: \"%s\"\n", argv[i] + 10);
+                return 1;
+            }
+            consumed = 1;
+        } else if (strcasecmp(argv[i], "--sharpen") == 0) {
+            if (i + 1 >= *argc) {
+                fprintf(stderr, "Missing value for --sharpen\n");
+                return 1;
+            }
+            if (Harness_ParseNonNegativeFloat(argv[i + 1], &harness_game_config.sharpen_amount) != 0) {
+                fprintf(stderr, "Invalid value for --sharpen: \"%s\"\n", argv[i + 1]);
+                return 1;
+            }
+            consumed = 2;
         } else if (strcasecmp(argv[i], "--game-completed") == 0) {
             harness_game_config.game_completed = 1;
             consumed = 1;
@@ -470,6 +577,24 @@ static int Harness_Ini_Callback(void* user, const char* section, const char* nam
         safe_strcpy(harness_game_config.game_dirs[harness_game_config.game_dirs_count].name, name);
         safe_strcpy(harness_game_config.game_dirs[harness_game_config.game_dirs_count].directory, value);
         harness_game_config.game_dirs_count++;
+    }
+
+    else if (strcasecmp(section, "Graphics") == 0) {
+        if (strcasecmp(name, "fsr") == 0) {
+            harness_game_config.fsr = (value[0] == '1');
+        } else if (strcasecmp(name, "fsrsharpness") == 0 || strcasecmp(name, "fsr_sharpness") == 0) {
+            if (Harness_ParseNonNegativeFloat(value, &f) == 0) {
+                harness_game_config.fsr_sharpness = f;
+            } else {
+                LOG_WARN2("Ignoring invalid Graphics.FSRSharpness value \"%s\"", value);
+            }
+        } else if (strcasecmp(name, "sharpenamount") == 0 || strcasecmp(name, "sharpen_amount") == 0) {
+            if (Harness_ParseNonNegativeFloat(value, &f) == 0) {
+                harness_game_config.sharpen_amount = f;
+            } else {
+                LOG_WARN2("Ignoring invalid Graphics.SharpenAmount value \"%s\"", value);
+            }
+        }
     }
 
     else if (MATCH("General", "CdCheck")) {

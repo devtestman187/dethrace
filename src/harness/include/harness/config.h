@@ -58,6 +58,15 @@ typedef struct tHarness_game_config {
     int opengl_3dfx_mode;
     int game_completed;
 
+    // OpenGL renderer (glrend) graphics settings. These are forwarded as the
+    // GLREND_* environment variables before the renderer is initialised.
+    // -1 / negative means "not specified": the next source in the precedence
+    // chain (dethrace.ini, then the existing environment, then the renderer
+    // default) applies.
+    int fsr;              // -1 = unspecified, 0 = disabled, 1 = enabled
+    float fsr_sharpness;  // RCAS sharpness in stops, < 0 = unspecified
+    float sharpen_amount; // legacy present-path unsharp mask, < 0 = unspecified
+
     int install_signalhandler;
     int no_bind;
     char network_adapter_name[256];
