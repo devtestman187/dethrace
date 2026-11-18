@@ -4,6 +4,8 @@
 [![Twitter](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com/dethrace_labs)
 [![Discord Carmageddon server](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/f5StsuP)
 
+See [MODERN-GRAPHICS.md](MODERN-GRAPHICS.md) for the modern-graphics (FSR 1.0) investigation and roadmap.
+
 Dethrace is an attempt to learn how the 1997 driving/mayhem game [Carmageddon](https://en.wikipedia.org/wiki/Carmageddon) works behind the scenes and rebuild it to run natively on modern systems.
 
 ## Status
