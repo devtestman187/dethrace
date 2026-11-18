@@ -57,3 +57,17 @@ Render the framebuffer from above as a full-screen quad.
 ### Swap buffers hook
 - Again capture `gBack_screen` to pick up HUD elements rendered after the 3d scene, convert it to 32 bit, and render it as a full-screen quad.
 - Generate a palette-manipulation image which is blended over the top of everything as a full-screen quad to handle palette animations.
+
+### Present path (OpenGL, off-screen target)
+
+The OpenGL driver renders the game at its native logical resolution (640x480)
+into an off-screen colour+depth target, and composites the 2d overlay layer
+into that same target in the original interleaved order (sky/map under the 3d
+scene, cockpit/HUD over it). `BrPixelmapDoubleBuffer` then presents the
+finished 640x480 frame into the harness' letterboxed window viewport
+(`240,0 + 1440x1080` inside a 1920x1080 window).
+
+When the AMD FidelityFX FSR 1.0 upscale is enabled, EASU reconstructs the
+frame at the present rect resolution and RCAS sharpens it into the window
+framebuffer. Otherwise the legacy nearest upscale plus unsharp mask is used.
+See `docs/CONFIGURATION.md` for the `GLREND_FSR*` environment variables.

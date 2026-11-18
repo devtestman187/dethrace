@@ -72,3 +72,19 @@ AdapterName = ""
 3. `--dir` command line argument
 4. Current working directory (if `DATA/GENERAL.TXT` exists)
 5. `SDL_GetPrefPath` directory
+
+## Graphics environment variables (OpenGL renderer)
+
+These are currently read from the process environment by the BRender `glrend`
+driver (they are not yet wired into `dethrace.ini`) and are read once at
+startup.
+
+| Variable | Values | Default | Description |
+|---|---|---|---|
+| `GLREND_FSR` | `0`, `1` | `1` on OpenGL core, `0` on OpenGL ES | Enables the AMD FidelityFX FSR 1.0 (EASU + RCAS) upscale of the game's native 640x480 frame to the window resolution. `0` keeps the legacy present path (nearest upscale + unsharp mask). On OpenGL ES FSR 1.0 defaults to off and must be enabled explicitly. |
+| `GLREND_FSR_SHARPNESS` | `0`..`2` (stops) | `0.2` | RCAS sharpening strength while FSR 1.0 is active: `0` = maximum sharpening, higher values are softer. |
+| `GLREND_SHARPEN_AMOUNT` | `0`..`~1` | `0.4` | Strength of the legacy present-path unsharp mask. Only used when FSR 1.0 is not active (disabled, OpenGL ES, or the window is not larger than 640x480). |
+
+FSR 1.0 is only used when the window is larger than the game's native 640x480
+resolution, i.e. when there is something to upscale. When it is active, RCAS
+replaces the legacy unsharp mask.
