@@ -217,6 +217,22 @@ cmake --build build
 
 **A-variants.** FXAA, palette LUT, and CRT shaders are cheap because they need only the color texture and the present-blit hook already in place.
 
+## Visual comparison
+
+These are the measured before/after results for each step of the renderer work, captured as A/B crops during the investigation.
+
+![FSR 1.0 vs nearest](docs/images/fsr1-vs-nearest.png) — FSR 1.0 (EASU+RCAS) vs the legacy nearest upscale: smooth reconstructed edges (shipped).
+
+![Temporal AA vs FSR1](docs/images/temporal-aa-track.png) — native-res temporal AA (Option C, M1) vs FSR1: cleaner, less-aliased track edges (prototyped, archived).
+
+![Motion vectors ghosting](docs/images/motion-vectors-ghosting.png) — per-object motion vectors (M2) vs camera-only: ~49% less moving-actor ghosting (prototyped, archived).
+
+![AI-upscaled car texture](docs/images/ai-texture-car.png) — Real-ESRGAN 4× car texture vs original: visible denoise, not added detail (texture-replacement hook).
+
+![Community car skin](docs/images/community-car-skin-revamp.png) — community "HD" car skin (Revamp Project) vs vanilla: cleaner restored art, still 8-bit (user-supplied).
+
+![Source texture ceiling](docs/images/source-texture-ceiling.png) — the hard ceiling: the source art is 8-bit paletted (BGLTOP car texture, vanilla vs restored).
+
 ## Licensing
 
 | Component | License |
