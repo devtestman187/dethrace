@@ -141,3 +141,21 @@ command line and `dethrace.ini` leave unspecified.
 FSR 1.0 is only used when the window is larger than the game's native 640x480
 resolution, i.e. when there is something to upscale. When it is active, RCAS
 replaces the legacy unsharp mask.
+
+### Texture replacement
+
+The `glrend` driver can load user-supplied higher-resolution textures in place of
+the game's 8-bit paletted `.PIX` textures. Drop PNG/TGA/BMP files named by the
+texture's identifier into a folder (default `textures/` beside the game data)
+and the renderer uses them instead of the paletted originals.
+
+| Variable | Values | Default | Description |
+|---|---|---|---|
+| `GLREND_TEXTURE_DIR` | path | `textures` (relative to the game data dir) | Folder containing replacement textures, keyed by the `.PIX` identifier (case-insensitive; e.g. `textures/ROAD.png` replaces the texture whose identifier is `ROAD.PIX`). |
+| `GLREND_TEXTURE_DISABLE` | `0`, `1` | `0` | Set to `1` to disable texture replacement entirely. |
+| `GLREND_TEXTURE_DEBUG` | `0`, `1` | `0` | Log every texture identifier the driver sees and every replacement it loads. |
+| `GLREND_TEXTURE_MAX_SIZE` | integer | `2048` | Maximum side (px) for a loaded replacement, clamped by the GL implementation's `GL_MAX_TEXTURE_SIZE`. |
+
+Replacement textures are uploaded as RGBA8 with mipmaps, and bypass the game's
+global palette animation (fades, the "on drugs" effect). These are user-supplied
+assets — the project does not ship any replacement textures.

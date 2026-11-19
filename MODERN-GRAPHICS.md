@@ -203,14 +203,17 @@ cmake --build build
 
 | Option | Technique | Inputs required | Effort | Status |
 |---|---|---|---|---|
-| **A** | Post-process sharpen on the present blit; FBO + present hook | Color texture | Small | **Implemented** on `feature/gl-postprocess` |
-| **B** | FSR1 spatial upscale (AMD FidelityFX FSR 1.0 — EASU + RCAS) | Color texture only | ~1 week on top of A | **Implemented** — shipped on `feature/gl-postprocess` |
-| **C** | Temporal upscaling (FSR 2 / FSR 3 or DLSS) | Depth texture, per-pixel motion vectors, color history, jitter | ~2–4 months | **Planned** |
+| **A** | Post-process sharpen on the present blit; FBO + present hook | Color texture | Small | **Implemented** |
+| **B** | FSR1 spatial upscale (AMD FidelityFX FSR 1.0 — EASU + RCAS) | Color texture only | ~1 week on top of A | **Implemented** — shipped |
+| **C** | Temporal upscaling (custom pixel-shader TAAU) | Depth, per-object motion vectors, color history, jitter | ~2 months (prototyped) | **Prototyped** — archived, not shipped |
+| **Texture replacement** | Load user-supplied higher-res textures over the paletted originals | PNG/TGA/BMP (RGBA) | ~1 week | **Implemented** — `GLREND_TEXTURE_DIR` |
 | **A-variants** | FXAA, LUT-palette, CRT shaders | Color texture only | Days each | Optional — cheap drop-ins on the same hook |
 
 **Option B — FSR1 spatial upscaling.** Color-only, single-pass EASU + RCAS, plugged into the same present blit. Implemented and verified in game.
 
-**Option C — temporal upscaling.** The hardest part is not the upscaler but the inputs: the pipeline currently produces no depth texture, no per-pixel motion vectors, and no color history, and it does not jitter the projection. Camera motion is easy to derive; *moving actors* require a renderer-state change plus game-side plumbing to emit per-object motion. That is why this is a multi-month effort rather than a shader drop-in.
+**Option C — temporal upscaling.** Prototyped as a custom pixel-shader TAAU (FSR2/DLSS are blocked on this engine's GL 3.1 core / GLES 3.0 context, and DLSS additionally by its license). The full pipeline — depth sampling, per-object motion vectors, projection jitter, reactive mask, native-res reproject+accumulate+clamp — was built and measured: ~98% of a 2× SSAA reference's variance reduction, −49% moving-actor ghosting, HUD byte-identical. It is real but *subtle* on this content, so it was archived rather than shipped (see Status).
+
+**Texture replacement.** A hook lets the renderer load user-supplied higher-res textures (e.g. `textures/<identifier>.png`, RGBA) in place of the game's 8-bit paletted `.PIX` textures, via the `GLREND_TEXTURE_*` settings (see `docs/CONFIGURATION.md`). This raises the *texture* ceiling, but the game still renders at 640×480 — see Status for the measured conclusion.
 
 **A-variants.** FXAA, palette LUT, and CRT shaders are cheap because they need only the color texture and the present-blit hook already in place.
 
@@ -227,5 +230,6 @@ This project does not distribute game data. To run it you must supply your own l
 
 ## Status
 
-- **Done:** Option A (off-screen FBO, behavior-preserving present hook, sharpen post-process PoC) and Option B (FSR 1.0 EASU + RCAS upscaling at native 640×480) — both implemented and pushed on `feature/gl-postprocess`. Runtime toggles are wired through command-line flags, `dethrace.ini` `[Graphics]`, and `GLREND_*` environment variables.
-- **Remaining:** Option C (temporal upscaling) is planned; FXAA / LUT-palette / CRT are optional cheap additions on the existing hook. The branch is a fork and is not upstreamed.
+- **Shipped (on `main` of the devtestman187 fork):** Option A (off-screen FBO + present-blit hook), Option B (FSR 1.0 EASU + RCAS upscaling), and the texture-replacement hook (`GLREND_TEXTURE_DIR`). Runtime toggles are wired through command-line flags, `dethrace.ini` `[Graphics]`, and `GLREND_*` environment variables.
+- **Prototyped, archived (not shipped):** Option C temporal AA (native-res TAA + per-object motion vectors + reactive mask) — measured as a real but subtle win.
+- **Conclusion (measured, 2026-11-19):** the 8-bit paletted 640×480 source art — plus the engine's 256px car-texture cap — is the hard ceiling. Renderer post-process, AI texture upscaling (denoise, not added detail), higher native render resolution (geometric anti-aliasing only), and community "HD" packs (car skins only, still 8-bit) all produce *polish*, not a "modern graphics" transformation. A truly modern look requires from-scratch re-authored art, which is a large, external effort not shipped here. The branch is a fork and is not upstreamed.
